@@ -1745,6 +1745,29 @@ static void adopt_children(ike_sa_t *old, ike_sa_t *new)
 }
 
 /**
+ * Move all virtual IPs assigned to clients from old to new
+ */
+static void adopt_virtual_ips(ike_sa_t *old, ike_sa_t *new)
+{
+	enumerator_t *enumerator;
+	host_t *vip;
+
+	enumerator = old->create_virtual_ip_enumerator(old, FALSE);
+	while (enumerator->enumerate(enumerator, &vip))
+	{
+		new->add_virtual_ip(new, FALSE, vip);
+	}
+	enumerator->destroy(enumerator);
+	/* this does not release the addresses, which is good, but it does trigger
+	 * an assign_vips(FALSE) event... */
+	old->clear_virtual_ips(old, FALSE);
+	/* ...trigger the analogous event on the new SA */
+	charon->bus->set_sa(charon->bus, new);
+	charon->bus->assign_vips(charon->bus, new, TRUE);
+	charon->bus->set_sa(charon->bus, old);
+}
+
+/**
  * Delete an existing IKE_SA due to a unique replace policy
  */
 static status_t enforce_replace(private_ike_sa_manager_t *this,
@@ -1762,6 +1785,8 @@ static status_t enforce_replace(private_ike_sa_manager_t *this,
 			/* IKEv1 implicitly takes over children, IKEv2 recreates them
 			 * explicitly. */
 			adopt_children(duplicate, new);
+			/* also adopt VIPs for clients that don't do mode config again */
+			adopt_virtual_ips(duplicate, new);
 		}
 		/* For IKEv1 we have to delay the delete for the old IKE_SA. Some
 		 * peers need to complete the new SA first, otherwise the quick modes
