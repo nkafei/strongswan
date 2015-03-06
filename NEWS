@@ -44,6 +44,10 @@ strongswan-5.3.0
   variant. Can be used in conjunction with the SHA256, SHA384 and SHA512 hash
   algorithms with SHA512 being the default.
 
+- For the vici plugin a Python Egg has been added to allow Python applications
+  to control or monitor the IKE daemon using the VICI interface, similar to the
+  existing ruby gem. The Python library has been contributed by Björn Schuberg.
+
 
 strongswan-5.2.2
 ----------------
